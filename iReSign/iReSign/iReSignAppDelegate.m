@@ -8,6 +8,7 @@
 //
 
 #import "iReSignAppDelegate.h"
+#import "yololib/yololib.h"
 
 static NSString *kKeyPrefsBundleIDChange            = @"keyBundleIDChange";
 
@@ -20,6 +21,7 @@ static NSString *kPayloadDirName                    = @"Payload";
 static NSString *kProductsDirName                   = @"Products";
 static NSString *kInfoPlistFilename                 = @"Info.plist";
 static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
+static NSString *kBundleExecutableName              = @"CFBundleExecutable";
 
 @implementation iReSignAppDelegate
 
@@ -170,8 +172,10 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
         if ([[NSFileManager defaultManager] fileExistsAtPath:[workingPath stringByAppendingPathComponent:kPayloadDirName]]) {
             NSLog(@"Unzipping done");
             [statusLabel setStringValue:@"Original app extracted"];
+            [self checkDylibFile];
             
             if (changeBundleIDCheckbox.state == NSOnState) {
+                _newBundleId = bundleIDField.stringValue;
                 [self doBundleIDChange:bundleIDField.stringValue];
             }
             
@@ -188,6 +192,43 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
     }
 }
 
+- (void)checkDylibFile {
+    if (dylibField.stringValue.length == 0) {
+        return;
+    }
+    NSArray *dirContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[workingPath stringByAppendingPathComponent:kPayloadDirName] error:nil];
+    NSString *infoPlistPath = nil;
+    NSString *appFolderPath = nil;
+    
+    for (NSString *file in dirContents) {
+        if ([[[file pathExtension] lowercaseString] isEqualToString:@"app"]) {
+            appFolderPath = [[workingPath stringByAppendingPathComponent:kPayloadDirName]
+                             stringByAppendingPathComponent:file];
+            infoPlistPath = [appFolderPath stringByAppendingPathComponent:kInfoPlistFilename];
+            break;
+        }
+    }
+    
+    NSString *frameworkFolder = [appFolderPath stringByAppendingPathComponent:kFrameworksDirName];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:frameworkFolder]) {
+        [[NSFileManager defaultManager] createDirectoryAtPath:frameworkFolder withIntermediateDirectories:NO attributes:nil error:nil];
+    }
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:dylibField.stringValue]) {
+        NSString *dest = [frameworkFolder stringByAppendingPathComponent:dylibField.stringValue.lastPathComponent];
+        NSError *copyError = nil;
+        [[NSFileManager defaultManager] copyItemAtPath:dylibField.stringValue toPath:dest error:&copyError];
+        
+        NSDictionary* infoPListDict = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
+        NSString *binaryName = infoPListDict[kBundleExecutableName];
+        NSString *binaryPath = [appFolderPath stringByAppendingPathComponent:binaryName];
+        NSString *dylibRelativePath = [kFrameworksDirName stringByAppendingPathComponent:dylibField.stringValue.lastPathComponent];
+
+        NSLog(@"%@, %@", binaryPath, dylibRelativePath);
+        injectDylibToBinary(binaryPath, dylibRelativePath);
+    }
+}
+
 - (void)checkCopy:(NSTimer *)timer {
     if ([copyTask isRunning] == 0) {
         [timer invalidate];
@@ -197,6 +238,7 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
         [statusLabel setStringValue:@".xcarchive app copied"];
         
         if (changeBundleIDCheckbox.state == NSOnState) {
+            _newBundleId = bundleIDField.stringValue;
             [self doBundleIDChange:bundleIDField.stringValue];
         }
         
@@ -258,7 +300,43 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
         [plist setObject:newBundleID forKey:bundleIDKey];
         
         NSData *xmlData = [NSPropertyListSerialization dataWithPropertyList:plist format:options options:kCFPropertyListImmutable error:nil];
-        
+        return [xmlData writeToFile:filePath atomically:YES];
+
+    }
+
+    return NO;
+}
+
+- (BOOL)changeExtensionBundleIdPrefixForFile:(NSString *)filePath bundleIDKey:(NSString *)bundleIDKey newBundleIdPrefix:(NSString *)newBundleIdPrefix plistOutOptions:(NSPropertyListWriteOptions)options {
+
+    NSMutableDictionary *plist = nil;
+
+    if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+        plist = [[NSMutableDictionary alloc] initWithContentsOfFile:filePath];
+        NSString *oldBundleId = [plist objectForKey:bundleIDKey];
+        NSString *newBundleId = [NSString stringWithFormat:@"%@.%@", newBundleIdPrefix, [[oldBundleId componentsSeparatedByString:@"."] lastObject]];
+
+        NSLog(@"==============\nold: %@ \nnew: %@", oldBundleId, newBundleId);
+        [plist setObject:newBundleId forKey:bundleIDKey];
+
+        if ([plist objectForKey:@"NSExtension"] && [plist objectForKey:@"NSExtension"][@"NSExtensionAttributes"]) {
+            NSMutableDictionary *extensionAttributes = [[plist objectForKey:@"NSExtension"][@"NSExtensionAttributes"] mutableCopy];
+            NSString *WKAppBundleIdentifier = extensionAttributes[@"WKAppBundleIdentifier"];
+            NSString *newWKAppBundleIdentifier = [NSString stringWithFormat:@"%@.%@", newBundleIdPrefix, [[WKAppBundleIdentifier componentsSeparatedByString:@"."] lastObject]];
+            NSLog(@"============\nold WKAppBundleIdentifier: %@, \nnew:%@", WKAppBundleIdentifier, newWKAppBundleIdentifier);
+            extensionAttributes[@"WKAppBundleIdentifier"] = newWKAppBundleIdentifier;
+
+            NSMutableDictionary *extensionDict = [[plist objectForKey:@"NSExtension"] mutableCopy];
+            extensionDict[@"NSExtensionAttributes"] = extensionAttributes;
+
+            [plist setObject:extensionDict forKey:@"NSExtension"];
+        }
+
+        if ([plist objectForKey:@"WKCompanionAppBundleIdentifier"]) {
+            [plist setObject:newBundleIdPrefix forKey:@"WKCompanionAppBundleIdentifier"];
+        }
+
+        NSData *xmlData = [NSPropertyListSerialization dataWithPropertyList:plist format:options options:kCFPropertyListImmutable error:nil];
         return [xmlData writeToFile:filePath atomically:YES];
         
     }
@@ -479,6 +557,9 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
                 NSString* dirToSign = [InfoPlistPath stringByDeletingLastPathComponent];
                 NSLog(@"Found %@", dirToSign);
                 [additionalResourcesToSign addObject:dirToSign];
+
+                [self changeExtensionBundleIdPrefixForFile:InfoPlistPath bundleIDKey:kKeyBundleIDPlistApp newBundleIdPrefix:_newBundleId plistOutOptions:NSPropertyListBinaryFormat_v1_0];
+
             }
         }
     }
@@ -723,6 +804,23 @@ static NSString *kiTunesMetadataFileName            = @"iTunesMetadata";
         [entitlementField setStringValue:fileNameOpened];
     }
 }
+
+- (IBAction)dylibBrowse:(id)sender {
+    NSOpenPanel* openDlg = [NSOpenPanel openPanel];
+    
+    [openDlg setCanChooseFiles:TRUE];
+    [openDlg setCanChooseDirectories:FALSE];
+    [openDlg setAllowsMultipleSelection:FALSE];
+    [openDlg setAllowsOtherFileTypes:FALSE];
+    [openDlg setAllowedFileTypes:@[@"DYLIB", @"dylib"]];
+    
+    if ([openDlg runModal] == NSOKButton)
+    {
+        NSString* fileNameOpened = [[[openDlg URLs] objectAtIndex:0] path];
+        [dylibField setStringValue:fileNameOpened];
+    }
+}
+
 
 - (IBAction)changeBundleIDPressed:(id)sender {
     

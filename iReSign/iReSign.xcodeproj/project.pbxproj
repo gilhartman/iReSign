@@ -16,6 +16,7 @@
 		C115EE4113815024003B9ACC /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = C115EE3F13815024003B9ACC /* MainMenu.xib */; };
 		C142471F138174E500F5B51F /* ResourceRules.plist in Resources */ = {isa = PBXBuildFile; fileRef = C142471E138174E500F5B51F /* ResourceRules.plist */; };
 		C14247301381B75B00F5B51F /* Icon.icns in Resources */ = {isa = PBXBuildFile; fileRef = C142472F1381B75B00F5B51F /* Icon.icns */; };
+		D8D26A821CA1BB8500AB4165 /* yololib.m in Sources */ = {isa = PBXBuildFile; fileRef = D8D26A811CA1BB8500AB4165 /* yololib.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,8 @@
 		C115EE4013815024003B9ACC /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		C142471E138174E500F5B51F /* ResourceRules.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = ResourceRules.plist; sourceTree = "<group>"; };
 		C142472F1381B75B00F5B51F /* Icon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = Icon.icns; path = ../Icon.icns; sourceTree = "<group>"; };
+		D8D26A801CA1BB8500AB4165 /* yololib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = yololib.h; sourceTree = "<group>"; };
+		D8D26A811CA1BB8500AB4165 /* yololib.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = yololib.m; sourceTree = "<group>"; };
 		DF1BF30B18D76F3800AF6E6F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/MainMenu.xib"; sourceTree = "<group>"; };
 		DF1BF30C18D76F3800AF6E6F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -92,6 +95,7 @@
 		C115EE3013815024003B9ACC /* iReSign */ = {
 			isa = PBXGroup;
 			children = (
+				D8D26A7F1CA1BB8500AB4165 /* yololib */,
 				C115EE3C13815024003B9ACC /* iReSignAppDelegate.h */,
 				C115EE3D13815024003B9ACC /* iReSignAppDelegate.m */,
 				C115EE3F13815024003B9ACC /* MainMenu.xib */,
@@ -115,6 +119,15 @@
 				C115EE3713815024003B9ACC /* main.m */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		D8D26A7F1CA1BB8500AB4165 /* yololib */ = {
+			isa = PBXGroup;
+			children = (
+				D8D26A801CA1BB8500AB4165 /* yololib.h */,
+				D8D26A811CA1BB8500AB4165 /* yololib.m */,
+			);
+			path = yololib;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -184,6 +197,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C115EE3813815024003B9ACC /* main.m in Sources */,
+				D8D26A821CA1BB8500AB4165 /* yololib.m in Sources */,
 				4C8EAD45185B74B90095DC6B /* IRHelpWindow.m in Sources */,
 				C115EE3E13815024003B9ACC /* iReSignAppDelegate.m in Sources */,
 				5B9E4C4C166AB3F7006D9F8F /* IRTextFieldDrag.m in Sources */,

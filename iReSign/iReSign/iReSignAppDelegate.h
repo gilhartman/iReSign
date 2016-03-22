@@ -44,6 +44,8 @@
     IBOutlet IRTextFieldDrag *provisioningPathField;
     IBOutlet IRTextFieldDrag *entitlementField;
     IBOutlet IRTextFieldDrag *bundleIDField;
+    IBOutlet IRTextFieldDrag *dylibField;
+
     IBOutlet NSButton    *browseButton;
     IBOutlet NSButton    *provisioningBrowseButton;
     IBOutlet NSButton *entitlementBrowseButton;
@@ -57,6 +59,7 @@
     NSTask *certTask;
     NSArray *getCertsResult;
     
+    NSString *_newBundleId;
 }
 
 @property (unsafe_unretained) IBOutlet NSWindow *window;
